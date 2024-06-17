@@ -5,6 +5,7 @@ const { ECS, waitUntilServicesStable } = require('@aws-sdk/client-ecs');
 const yaml = require('yaml');
 const fs = require('fs');
 const crypto = require('crypto');
+const { NodeHttpHandler } = require('@smithy/node-http-handler');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
 const MAX_WAIT_MINUTES = 360;  // 6 hours
@@ -265,7 +266,11 @@ async function run() {
     let handler;
     if (proxyServer) {
       core.info(`Configuring proxy handler for ECS client: ${proxyServer}`)
-      handler = new HttpsProxyAgent(proxyServer);
+      const proxyHandler = new HttpsProxyAgent(proxyServer);
+      handler = new NodeHttpHandler({
+        httpAgent: proxyHandler,
+        httpsAgent: proxyHandler,
+      });
     }
 
     const ecs = new ECS({
@@ -273,7 +278,8 @@ async function run() {
       requestHandler: handler ? handler : undefined,
     });
     const codedeploy = new CodeDeploy({
-      customUserAgent: 'amazon-ecs-deploy-task-definition-for-github-actions'
+      customUserAgent: 'amazon-ecs-deploy-task-definition-for-github-actions',
+      requestHandler: handler ? handler : undefined,
     });
 
     // Get inputs

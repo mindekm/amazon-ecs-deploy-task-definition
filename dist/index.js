@@ -11,6 +11,7 @@ const { ECS, waitUntilServicesStable } = __nccwpck_require__(8209);
 const yaml = __nccwpck_require__(4083);
 const fs = __nccwpck_require__(7147);
 const crypto = __nccwpck_require__(6113);
+const { NodeHttpHandler } = __nccwpck_require__(258);
 const { HttpsProxyAgent } = __nccwpck_require__(7219);
 
 const MAX_WAIT_MINUTES = 360;  // 6 hours
@@ -271,15 +272,20 @@ async function run() {
     let handler;
     if (proxyServer) {
       core.info(`Configuring proxy handler for ECS client: ${proxyServer}`)
-      handler = new HttpsProxyAgent(proxyServer);
-    }    
+      const proxyHandler = new HttpsProxyAgent(proxyServer);
+      handler = new NodeHttpHandler({
+        httpAgent: proxyHandler,
+        httpsAgent: proxyHandler,
+      });
+    }
 
     const ecs = new ECS({
       customUserAgent: 'amazon-ecs-deploy-task-definition-for-github-actions',
       requestHandler: handler ? handler : undefined,
     });
     const codedeploy = new CodeDeploy({
-      customUserAgent: 'amazon-ecs-deploy-task-definition-for-github-actions'
+      customUserAgent: 'amazon-ecs-deploy-task-definition-for-github-actions',
+      requestHandler: handler ? handler : undefined,
     });
 
     // Get inputs
