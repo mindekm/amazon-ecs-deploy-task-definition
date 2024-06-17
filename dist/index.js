@@ -272,10 +272,10 @@ async function run() {
     let handler;
     if (proxyServer) {
       core.info(`Configuring proxy handler for ECS client: ${proxyServer}`)
-      const proxyHandler = new HttpsProxyAgent(proxyServer);
+      const agent = new HttpsProxyAgent(proxyServer);
       handler = new NodeHttpHandler({
-        httpAgent: proxyHandler,
-        httpsAgent: proxyHandler,
+        httpAgent: agent,
+        httpsAgent: agent,
       });
     }
 
