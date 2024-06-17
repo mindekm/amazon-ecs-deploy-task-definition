@@ -5,6 +5,7 @@ const { ECS, waitUntilServicesStable } = require('@aws-sdk/client-ecs');
 const yaml = require('yaml');
 const fs = require('fs');
 const crypto = require('crypto');
+const { HttpsProxyAgent } = require('https-proxy-agent');
 
 const MAX_WAIT_MINUTES = 360;  // 6 hours
 const WAIT_DEFAULT_DELAY_SEC = 15;
@@ -260,8 +261,16 @@ async function createCodeDeployDeployment(codedeploy, clusterName, service, task
 
 async function run() {
   try {
+    const proxyServer = process.env.HTTP_PROXY || process.env.http_proxy;
+    let handler;
+    if (proxyServer) {
+      core.info(`Configuring proxy handler for ECS client: ${proxyServer}`)
+      handler = new HttpsProxyAgent(proxyServer);
+    }
+
     const ecs = new ECS({
-      customUserAgent: 'amazon-ecs-deploy-task-definition-for-github-actions'
+      customUserAgent: 'amazon-ecs-deploy-task-definition-for-github-actions',
+      requestHandler: handler ? handler : undefined,
     });
     const codedeploy = new CodeDeploy({
       customUserAgent: 'amazon-ecs-deploy-task-definition-for-github-actions'
